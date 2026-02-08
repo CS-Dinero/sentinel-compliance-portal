@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 38% 5%;
+    --foreground: 0 0% 98%;
+    --card: 225 38% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 225 38% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 222 47% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 47% 15%;
+    --input: 222 47% 15%;
+    --ring: 224 76% 48%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 225 38% 5%;
+    --foreground: 0 0% 98%;
+    --card: 225 38% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 225 38% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 222 47% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 47% 15%;
+    --input: 222 47% 15%;
+    --ring: 224 76% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground selection:bg-primary/30;
+    font-family: 'Geist Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Custom effects */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.glass {
+  @apply backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
+}
+
+.glass-morphism {
+  @apply glass hover:bg-white/[0.05] transition-all duration-300;
+}
+
+.spotlight {
+  background: radial-gradient(
+    600px circle at var(--x) var(--y),
+    rgba(59, 130, 246, 0.05),
+    transparent 40%
+  );
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.3);
+}
+
+.scan-line {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-line::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, transparent, hsl(var(--primary)), transparent);
+  opacity: 0.2;
+  animation: scan 6s linear infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1200%); }
+}
+
+/* Terminal log styles */
+.terminal-log {
+  @apply font-mono text-xs text-primary/70 bg-black/40 p-3 rounded border border-white/5;
+}
+
+.terminal-line {
+  @apply opacity-0 animate-in fade-in slide-in-from-left-2 duration-300 fill-mode-forwards;
+}
+
+@keyframes terminal-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor::after {
+  content: "_";
+  animation: terminal-cursor 1s infinite;
+}
+
+/* Radial Gauge Background */
+.gauge-bg {
+  stroke: hsl(var(--secondary));
+}
+
+.gauge-progress {
+  stroke: hsl(var(--primary));
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.gauge-progress-destructive {
+  stroke: hsl(var(--destructive));
+}
