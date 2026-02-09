@@ -7,3 +7,6 @@ AIRTABLE_API_KEY = "patOrBJwsnQno2WPH.cc49ad9463d6690de2de06c7811011100fa029d8d2
 
 [nix]
 channel = "stable-25_05"
+
+[agent]
+integrations = ["javascript_gemini_ai_integrations:2.0.0"]
