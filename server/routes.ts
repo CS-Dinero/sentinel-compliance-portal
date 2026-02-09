@@ -43,7 +43,7 @@ export async function registerRoutes(
       const webhookSecret = process.env.SENTINEL_WEBHOOK_SECRET;
       const providedSecret = req.headers["x-sentinel-webhook-secret"];
       
-      if (webhookSecret && providedSecret !== webhookSecret) {
+      if (!webhookSecret || providedSecret !== webhookSecret) {
         console.log("[Bot B] Unauthorized request - invalid webhook secret");
         return res.status(403).json({
           ok: false,

@@ -96,7 +96,6 @@ app.use((req, res, next) => {
       log(`Bot B Webhook Worker listening on port ${port}`);
       log(`Health check: GET /health`);
       log(`Process audit: POST /bot-b/process-audit`);
-      log(`Stripe webhook: POST /bot-b/stripe-webhook`);
     },
   );
 })();

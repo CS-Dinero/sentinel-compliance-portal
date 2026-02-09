@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "NODE_ENV=development tsx server/index.ts & vite --host",
     "dev:server": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
@@ -61,6 +62,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
     "express": "^5.2.1",
     "framer-motion": "^12.29.0",
@@ -68,8 +70,12 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.563.0",
     "next-themes": "^0.4.6",
+    "p-limit": "^7.3.0",
+    "p-retry": "^7.1.1",
     "postcss": "8.4.31",
+    "react": "^19.2.4",
     "react-day-picker": "^9.13.0",
+    "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
     "react-resizable-panels": "^4.4.1",
@@ -84,6 +90,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
     "vaul": "^1.1.2",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6",
+    "zod-validation-error": "^5.0.0"
   }
 }
