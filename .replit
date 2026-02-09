@@ -1,5 +1,5 @@
 modules = ["nodejs-20"]
-run = "npm run dev:all"
+run = "npm start"
 
 [userenv]
 
