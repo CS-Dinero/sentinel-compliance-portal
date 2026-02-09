@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(git -C /home/runner/workspace branch -a)",
+      "Bash(git -C /home/runner/workspace log --oneline -10)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:package.json)",
+      "Bash(git -C /home/runner/workspace log origin/mastra-integration --oneline -10)",
+      "Bash(git -C /home/runner/workspace diff origin/main...origin/mastra-integration --name-only)",
+      "Bash(git -C /home/runner/workspace diff --name-only origin/main...origin/mastra-integration)",
+      "Bash(git -C /home/runner/workspace ls-tree:*)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:server/index.ts)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:server/routes.ts)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:server/lib/processor.ts)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:tsconfig.json)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:CLAUDE.md)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:server/lib/airtable.ts)",
+      "Bash(git -C /home/runner/workspace show origin/mastra-integration:.env.example)",
+      "Bash(git -C /home/runner/workspace show origin/main:package.json)",
+      "Bash(git -C /home/runner/workspace diff --stat origin/main...origin/mastra-integration)",
+      "Bash(git checkout:*)",
+      "Bash(node -e:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 5 npx tsx:*)",
+      "Bash(timeout 5 PORT=5099 npx tsx:*)",
+      "Bash(PORT=5099 timeout 5 npx tsx:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh pr create:*)",
+      "Bash(/tmp/gh_2.63.2_linux_amd64/bin/gh pr create:*)",
+      "Bash(env)",
+      "Bash(echo:*)",
+      "Bash(git credential:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
