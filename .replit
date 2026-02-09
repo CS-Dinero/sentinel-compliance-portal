@@ -1,1 +1,9 @@
 modules = ["nodejs-20"]
+
+[userenv]
+
+[userenv.shared]
+AIRTABLE_API_KEY = "patOrBJwsnQno2WPH.cc49ad9463d6690de2de06c7811011100fa029d8d2f1f914ebf38b45920a0af7"
+
+[nix]
+channel = "stable-25_05"
