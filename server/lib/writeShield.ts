@@ -50,7 +50,6 @@ const FINDINGS_WRITE_ALLOWLIST = new Set<string>([
   "audit",
   "client",
   "title",
-  "finding_title",
   "severity",
   "status",
   "description",

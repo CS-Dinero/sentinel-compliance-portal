@@ -60,7 +60,7 @@ export interface FindingRecord {
   severity?: string;
   status?: string;
   category?: string;
-  finding_title?: string;
+  title?: string;
   remediation_plan?: string;
   ai_fix_code?: string;
   edge_score_component?: number;

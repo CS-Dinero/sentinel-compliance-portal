@@ -68,7 +68,7 @@ export async function processAudit(auditRecordId: string): Promise<ProcessResult
       severity: f.severity,
       status: f.status || "OPEN",
       category: f.category,
-      finding_title: f.finding_title,
+      title: f.finding_title,
       remediation_plan: f.remediation_plan,
       ai_fix_code: f.ai_fix_code,
       edge_score_component: f.edge_score_component,
