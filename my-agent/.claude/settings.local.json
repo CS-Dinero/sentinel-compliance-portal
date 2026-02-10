@@ -40,7 +40,10 @@
       "Bash(grep:*)",
       "Bash(git fetch:*)",
       "Bash(git rebase:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "Bash(node:*)"
     ]
   }
 }
