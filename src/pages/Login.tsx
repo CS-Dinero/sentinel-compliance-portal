@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Shield, Mail, Loader2, ArrowRight, AlertTriangle, Activity, KeyRound } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/lib/auth'
-import { setGatewayToken, api } from '@/lib/api'
+import { setGatewayToken, api, getGatewayUrl } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,13 +30,20 @@ export function Login() {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_GATEWAY_URL || import.meta.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.sentinel.momentumgrowthagency.com'}/auth/health`)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const response = await fetch(`${getGatewayUrl()}/auth/health`, {
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
         if (response.ok) {
           setGatewayStatus('online')
         } else {
+          console.warn(`Gateway health check returned ${response.status}`)
           setGatewayStatus('offline')
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.warn('Gateway health check failed:', error.message)
         setGatewayStatus('offline')
       }
     }
@@ -91,7 +98,16 @@ export function Login() {
         navigate('/dashboard')
       }, 500)
     } catch (error: any) {
-      toast.error(error.message || 'Gateway authentication failed. Verify your credentials.')
+      const msg = error.message || 'Gateway authentication failed.'
+      // Show a shorter toast but log the full error
+      console.error('Admin login error:', msg)
+      if (msg.includes('Unable to reach')) {
+        toast.error('Cannot reach the Gateway server. Please verify it is running and check CORS settings.')
+      } else if (msg.includes('timed out')) {
+        toast.error('Gateway request timed out. The server may be down or unreachable.')
+      } else {
+        toast.error(msg)
+      }
     } finally {
       setIsAdminSubmitting(false)
     }
