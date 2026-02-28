@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Shield, Mail, Loader2, ArrowRight, AlertTriangle, Activity, KeyRound } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/lib/auth'
-import { setGatewayToken, api, getGatewayUrl } from '@/lib/api'
+import { setGatewayToken, api, getGatewayUrl, getGatewayApiKey } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,8 +32,14 @@ export function Login() {
       try {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const healthHeaders: Record<string, string> = {}
+        const apiKey = getGatewayApiKey()
+        if (apiKey) {
+          healthHeaders['x-api-key'] = apiKey
+        }
         const response = await fetch(`${getGatewayUrl()}/auth/health`, {
           signal: controller.signal,
+          headers: healthHeaders,
         })
         clearTimeout(timeoutId)
         if (response.ok) {

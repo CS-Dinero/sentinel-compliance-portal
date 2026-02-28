@@ -1,6 +1,8 @@
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || import.meta.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.sentinel.momentumgrowthagency.com'
+const GATEWAY_API_KEY = import.meta.env.VITE_GATEWAY_API_KEY || ''
 
 export const getGatewayUrl = () => GATEWAY_URL
+export const getGatewayApiKey = () => GATEWAY_API_KEY
 
 export const getGatewayToken = () => localStorage.getItem('gateway_token')
 export const setGatewayToken = (token: string) => localStorage.setItem('gateway_token', token)
@@ -12,6 +14,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const headers = new Headers(options.headers)
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
+  }
+  if (GATEWAY_API_KEY) {
+    headers.set('x-api-key', GATEWAY_API_KEY)
   }
   headers.set('Content-Type', 'application/json')
 
