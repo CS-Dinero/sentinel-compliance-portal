@@ -1,11 +1,36 @@
 import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 
+const apiKey = process.env.GEMINI_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY;
+if (!apiKey) {
+  console.warn("[LLM] No Gemini API key found. Set GEMINI_API_KEY or AI_INTEGRATIONS_GEMINI_API_KEY.");
+}
+
+const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
 const ai = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY!,
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL!,
-  },
+  apiKey: apiKey || "missing-key",
+  ...(baseUrl ? { httpOptions: { apiVersion: "", baseUrl } } : {}),
+});
+
+const VALID_SEVERITIES = new Set(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]);
+const VALID_CATEGORIES = new Set(["Security", "Privacy", "Compliance", "Performance", "Accessibility"]);
+
+const findingSchema = z.object({
+  severity: z.string().refine((s) => VALID_SEVERITIES.has(s), { message: "Invalid severity" }),
+  category: z.string().refine((s) => VALID_CATEGORIES.has(s), { message: "Invalid category" }),
+  finding_title: z.string().min(1),
+  evidence_snippet: z.string().min(1, "Finding must include evidence_snippet referencing collected HTML"),
+  status: z.string().default("OPEN"),
+  remediation_plan: z.string().min(1),
+  ai_fix_code: z.string().optional(),
+  edge_score_component: z.number().min(0).max(100).optional(),
+});
+
+const analysisResultSchema = z.object({
+  findings: z.array(findingSchema),
+  exec_summary: z.string().min(10, "exec_summary must be substantive"),
+  risk_analysis: z.string().min(10, "risk_analysis must be substantive"),
+  remediation_overview: z.string().min(10, "remediation_overview must be substantive"),
 });
 
 const MAX_RETRIES = 3;
@@ -106,6 +131,7 @@ Generate a JSON response with the following structure:
       "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
       "category": "Security|Privacy|Compliance|Performance|Accessibility",
       "finding_title": "Brief title of the finding",
+      "evidence_snippet": "Exact quote or reference from the collected HTML that supports this finding",
       "status": "OPEN",
       "remediation_plan": "Detailed steps to fix this issue",
       "ai_fix_code": "Code snippet if applicable",
@@ -117,52 +143,43 @@ Generate a JSON response with the following structure:
   "remediation_overview": "Prioritized overview of recommended remediation steps"
 }
 
+IMPORTANT RULES:
+- Every finding MUST include an "evidence_snippet" field referencing specific content from the provided HTML.
+- Do NOT infer security headers, server configurations, or vulnerabilities that cannot be observed in the provided HTML.
+- If no issues are found, return an empty findings array — do not invent issues.
+- Only report what the HTML evidence supports.
+
 Focus on:
 1. Security vulnerabilities (XSS, CSRF, insecure forms, missing HTTPS)
 2. Privacy compliance (cookie consent, data collection practices, privacy policy)
 3. GDPR/CCPA compliance issues
 4. Accessibility issues (WCAG compliance)
 5. Performance concerns
-6. Missing security headers
+6. Missing security headers (only if observable in HTML meta tags or scripts)
 
-Generate 5-15 findings based on the severity of issues found. Be specific and actionable.
+Generate findings based on the severity of issues actually found. Be specific and evidence-based.
 Return ONLY valid JSON, no markdown formatting.`;
 
-  try {
-    const responseText = await generateWithRetry(prompt);
-    
-    // Parse JSON from response
-    let parsed;
-    try {
-      // Try to extract JSON from potential markdown code blocks
-      const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : responseText;
-      parsed = JSON.parse(jsonStr.trim());
-    } catch {
-      console.error("Failed to parse LLM response as JSON, using fallback");
-      return {
-        findings: [{
-          severity: "INFO",
-          category: "Audit",
-          finding_title: "Audit completed with parsing error",
-          status: "OPEN",
-          remediation_plan: "Manual review required - LLM response could not be parsed",
-          edge_score_component: 50,
-        }],
-        exec_summary: "The automated audit completed but encountered parsing issues. Manual review is recommended.",
-        risk_analysis: "Unable to fully assess risk due to parsing error.",
-        remediation_overview: "Please conduct a manual security review.",
-      };
-    }
+  const responseText = await generateWithRetry(prompt);
 
-    return {
-      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
-      exec_summary: parsed.exec_summary || "",
-      risk_analysis: parsed.risk_analysis || "",
-      remediation_overview: parsed.remediation_overview || "",
-    };
-  } catch (error) {
-    console.error("LLM analysis failed:", error);
-    throw error;
+  let rawJson: unknown;
+  try {
+    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const jsonStr = jsonMatch ? jsonMatch[1] : responseText;
+    rawJson = JSON.parse(jsonStr.trim());
+  } catch (parseErr) {
+    throw new Error(
+      `LLM returned malformed JSON. First 500 chars: ${responseText.slice(0, 500)}`
+    );
   }
+
+  const validated = analysisResultSchema.safeParse(rawJson);
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ");
+    throw new Error(`LLM output failed validation: ${issues}`);
+  }
+
+  return validated.data;
 }

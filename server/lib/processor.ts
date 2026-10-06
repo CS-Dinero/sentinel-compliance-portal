@@ -78,16 +78,26 @@ export async function processAudit(auditRecordId: string): Promise<ProcessResult
     const { created, failed } = await createFindingsBatch(findingRecords);
     console.log(`[Bot B] Created ${created} findings, ${failed} failed`);
 
+    if (findingRecords.length > 0 && created === 0) {
+      throw new Error(
+        `All ${failed} findings failed to write to Airtable. None were persisted.`
+      );
+    }
+
     // Update audit record with results
     const now = new Date().toISOString();
-    await updateAuditRecord(auditRecordId, {
+    const summaryUpdated = await updateAuditRecord(auditRecordId, {
       bot_b_status: "COMPLETE",
       exec_summary: result.exec_summary,
       risk_analysis: result.risk_analysis,
       remediation_overview: result.remediation_overview,
       scan_completed_at: now,
-      last_error: "",
+      last_error: failed > 0 ? `${failed} of ${findingRecords.length} findings failed to write` : "",
     });
+
+    if (!summaryUpdated) {
+      throw new Error("Failed to update audit record with summary results in Airtable");
+    }
 
     console.log(`[Bot B] Audit processing complete for: ${auditRecordId}`);
 

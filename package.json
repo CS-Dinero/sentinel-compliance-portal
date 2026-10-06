@@ -14,7 +14,9 @@
     "lint:types": "tsc --noEmit",
     "check:css-vars": "node scripts/check-css-variables.js",
     "check:css-classes": "node scripts/check-css-classes.js",
-    "lint": "bun run lint:types && bun run lint:js && bun run lint:css && bun run check:css-vars && bun run check:css-classes"
+    "lint": "bun run lint:types && bun run lint:js && bun run lint:css && bun run check:css-vars && bun run check:css-classes",
+    "run-audit": "tsx scripts/run-audit.ts",
+    "test:audit": "tsx scripts/run-audit.test.ts"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
