@@ -322,6 +322,72 @@ async function runTests() {
   });
 
   // ---------------------------------------------------------------------------
+  // Tests: Evidence cross-validation
+  // ---------------------------------------------------------------------------
+
+  console.log("\n=== Evidence Cross-Validation Tests ===\n");
+
+  await test("Exact evidence snippet match found in collected HTML", () => {
+    const html = '<form action="http://example.com/submit"><input type="text" name="email"></form>';
+    const findings = [
+      { evidence_snippet: '<form action="http://example.com/submit">', finding_title: "Insecure form" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: html });
+    assert(result[0].matchType === "exact", `Expected exact, got ${result[0].matchType}`);
+    assert(result[0].matchedIn === "homepage", "Should match in homepage");
+  });
+
+  await test("Normalized evidence match (whitespace differences)", () => {
+    const html = '<form  action="http://example.com/submit" >';
+    const findings = [
+      { evidence_snippet: '<form action="http://example.com/submit" >', finding_title: "Insecure form" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: html });
+    assert(result[0].matchType === "normalized", `Expected normalized, got ${result[0].matchType}`);
+  });
+
+  await test("Unmatched evidence snippet flagged correctly", () => {
+    const html = "<html><body><p>Hello world</p></body></html>";
+    const findings = [
+      { evidence_snippet: "Server: Apache/2.4.1 (detected via HTTP headers)", finding_title: "Server version disclosure" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: html });
+    assert(result[0].matchType === "unmatched", `Expected unmatched, got ${result[0].matchType}`);
+    assert(result[0].matchedIn === null, "Should not match any page");
+  });
+
+  await test("Evidence found in secondary page (privacy)", () => {
+    const homepageHtml = "<html><body>Homepage</body></html>";
+    const privacyHtml = '<p>We do not use cookies for tracking purposes.</p>';
+    const findings = [
+      { evidence_snippet: "We do not use cookies for tracking purposes.", finding_title: "Cookie policy" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: homepageHtml, privacy: privacyHtml });
+    assert(result[0].matchType === "exact", `Expected exact, got ${result[0].matchType}`);
+    assert(result[0].matchedIn === "privacy", `Expected privacy, got ${result[0].matchedIn}`);
+  });
+
+  await test("Empty evidence snippet is flagged as unmatched", () => {
+    const html = "<html><body>content</body></html>";
+    const findings = [
+      { evidence_snippet: "", finding_title: "Missing evidence" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: html });
+    assert(result[0].matchType === "unmatched", `Expected unmatched, got ${result[0].matchType}`);
+  });
+
+  await test("Multiple findings: mixed match results", () => {
+    const html = '<html><body><form action="http://test.com"></form><p>Hello</p></body></html>';
+    const findings = [
+      { evidence_snippet: '<form action="http://test.com">', finding_title: "Found one" },
+      { evidence_snippet: "X-Frame-Options header missing", finding_title: "Not found" },
+    ];
+    const result = crossValidateEvidenceMock(findings, { homepage: html });
+    assert(result[0].matchType === "exact", "First should be exact");
+    assert(result[1].matchType === "unmatched", "Second should be unmatched");
+  });
+
+  // ---------------------------------------------------------------------------
   // Tests: Write failure handling (processAudit fix)
   // ---------------------------------------------------------------------------
 
@@ -427,6 +493,52 @@ function isUrlSafeMock(urlStr: string): boolean {
   } catch {
     return false;
   }
+}
+
+function normalizeForComparisonMock(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function crossValidateEvidenceMock(
+  findings: { evidence_snippet: string; finding_title: string }[],
+  collectedPages: Record<string, string>
+): { findingTitle: string; evidenceSnippet: string; matchedIn: string | null; matchType: "exact" | "normalized" | "unmatched" }[] {
+  const results: { findingTitle: string; evidenceSnippet: string; matchedIn: string | null; matchType: "exact" | "normalized" | "unmatched" }[] = [];
+
+  for (const f of findings) {
+    const snippet = f.evidence_snippet;
+    if (!snippet) {
+      results.push({ findingTitle: f.finding_title, evidenceSnippet: "", matchedIn: null, matchType: "unmatched" });
+      continue;
+    }
+
+    let matched = false;
+    for (const [pageName, html] of Object.entries(collectedPages)) {
+      if (html.includes(snippet)) {
+        results.push({ findingTitle: f.finding_title, evidenceSnippet: snippet.slice(0, 120), matchedIn: pageName, matchType: "exact" });
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      const normalizedSnippet = normalizeForComparisonMock(snippet);
+      for (const [pageName, html] of Object.entries(collectedPages)) {
+        const normalizedHtml = normalizeForComparisonMock(html);
+        if (normalizedHtml.includes(normalizedSnippet)) {
+          results.push({ findingTitle: f.finding_title, evidenceSnippet: snippet.slice(0, 120), matchedIn: pageName, matchType: "normalized" });
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    if (!matched) {
+      results.push({ findingTitle: f.finding_title, evidenceSnippet: snippet.slice(0, 120), matchedIn: null, matchType: "unmatched" });
+    }
+  }
+
+  return results;
 }
 
 function generateMockReport(

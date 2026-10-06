@@ -254,6 +254,83 @@ async function collectEvidence(websiteUrl: string): Promise<CollectionResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Evidence cross-validation
+// ---------------------------------------------------------------------------
+
+interface EvidenceValidation {
+  findingTitle: string;
+  evidenceSnippet: string;
+  matchedIn: string | null; // page name where found, or null if unmatched
+  matchType: "exact" | "normalized" | "unmatched";
+}
+
+function normalizeForComparison(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function crossValidateEvidence(
+  findings: GeneratedFinding[],
+  collectedPages: Record<string, string>
+): EvidenceValidation[] {
+  const results: EvidenceValidation[] = [];
+
+  for (const f of findings) {
+    const snippet = f.evidence_snippet;
+    if (!snippet) {
+      results.push({
+        findingTitle: f.finding_title,
+        evidenceSnippet: "",
+        matchedIn: null,
+        matchType: "unmatched",
+      });
+      continue;
+    }
+
+    let matched = false;
+    for (const [pageName, html] of Object.entries(collectedPages)) {
+      if (html.includes(snippet)) {
+        results.push({
+          findingTitle: f.finding_title,
+          evidenceSnippet: snippet.slice(0, 120),
+          matchedIn: pageName,
+          matchType: "exact",
+        });
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      const normalizedSnippet = normalizeForComparison(snippet);
+      for (const [pageName, html] of Object.entries(collectedPages)) {
+        const normalizedHtml = normalizeForComparison(html);
+        if (normalizedHtml.includes(normalizedSnippet)) {
+          results.push({
+            findingTitle: f.finding_title,
+            evidenceSnippet: snippet.slice(0, 120),
+            matchedIn: pageName,
+            matchType: "normalized",
+          });
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    if (!matched) {
+      results.push({
+        findingTitle: f.finding_title,
+        evidenceSnippet: snippet.slice(0, 120),
+        matchedIn: null,
+        matchType: "unmatched",
+      });
+    }
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Report generation
 // ---------------------------------------------------------------------------
 
@@ -269,6 +346,12 @@ interface AuditMetadata {
   findingsCount: number;
   status: "GENERATED_AWAITING_REVIEW" | "COLLECTION_FAILED" | "ANALYSIS_FAILED";
   supabaseSaved: boolean;
+  evidenceValidation?: {
+    exactMatches: number;
+    normalizedMatches: number;
+    unmatched: number;
+    unmatchedFindings: string[];
+  };
 }
 
 function generateAuditReport(
@@ -509,6 +592,31 @@ async function main() {
   console.log(`  Findings: ${result.findings.length}`);
   console.log(`  Summaries: exec_summary, risk_analysis, remediation_overview`);
 
+  // --- Step 2b: Cross-validate evidence snippets ---
+  console.log(`[2b/4] Cross-validating evidence snippets against collected HTML...`);
+  const collectedPages: Record<string, string> = {
+    homepage: evidence.homepage.html!,
+  };
+  if (evidence.contact?.html) collectedPages.contact = evidence.contact.html;
+  if (evidence.privacy?.html) collectedPages.privacy = evidence.privacy.html;
+  if (evidence.terms?.html) collectedPages.terms = evidence.terms.html;
+
+  const evidenceValidation = crossValidateEvidence(result.findings, collectedPages);
+  const exactMatches = evidenceValidation.filter((v) => v.matchType === "exact").length;
+  const normalizedMatches = evidenceValidation.filter((v) => v.matchType === "normalized").length;
+  const unmatched = evidenceValidation.filter((v) => v.matchType === "unmatched");
+
+  console.log(`  Exact matches:      ${exactMatches}/${result.findings.length}`);
+  console.log(`  Normalized matches: ${normalizedMatches}/${result.findings.length}`);
+  console.log(`  Unmatched:          ${unmatched.length}/${result.findings.length}`);
+
+  if (unmatched.length > 0) {
+    console.warn(`  ⚠  Unmatched evidence snippets (require manual review):`);
+    for (const u of unmatched) {
+      console.warn(`     - "${u.findingTitle}": "${u.evidenceSnippet}..."`);
+    }
+  }
+
   // --- Step 3: Save outputs ---
   console.log(`[3/4] Saving outputs...`);
 
@@ -522,6 +630,7 @@ async function main() {
         websiteUrl: args.websiteUrl,
         purchaseTier: args.purchaseTier,
         analysisCompletedAt,
+        evidenceValidation,
         ...result,
       },
       null,
@@ -541,6 +650,12 @@ async function main() {
     findingsCount: result.findings.length,
     status: "GENERATED_AWAITING_REVIEW",
     supabaseSaved: false,
+    evidenceValidation: {
+      exactMatches,
+      normalizedMatches,
+      unmatched: unmatched.length,
+      unmatchedFindings: unmatched.map((u) => u.findingTitle),
+    },
   };
 
   // Customer-facing report (tier-appropriate)

@@ -99,6 +99,17 @@ export async function processAudit(auditRecordId: string): Promise<ProcessResult
       throw new Error("Failed to update audit record with summary results in Airtable");
     }
 
+    if (failed > 0) {
+      console.warn(`[Bot B] Audit ${auditRecordId} completed with partial write failures: ${failed} of ${findingRecords.length} findings lost`);
+      return {
+        ok: false,
+        audit_record_id: auditRecordId,
+        findings_created: created,
+        status: "COMPLETE",
+        error: `${failed} of ${findingRecords.length} findings failed to write`,
+      };
+    }
+
     console.log(`[Bot B] Audit processing complete for: ${auditRecordId}`);
 
     return {
