@@ -1,0 +1,21 @@
+modules = ["nodejs-20"]
+run = "npm start"
+
+[userenv]
+
+[userenv.shared]
+AIRTABLE_API_KEY = "patOrBJwsnQno2WPH.cc49ad9463d6690de2de06c7811011100fa029d8d2f1f914ebf38b45920a0af7"
+
+[nix]
+channel = "stable-25_05"
+
+[agent]
+integrations = ["javascript_gemini_ai_integrations:2.0.0"]
+
+[deployment]
+run = ["sh", "-c", "npm start"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
